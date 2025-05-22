@@ -1,0 +1,32 @@
+# Build artifacts
+/bin/
+/vendor/
+*.exe
+*.dll
+*.so
+*.dylib
+*.out
+
+# IDE & editor files
+*.swp
+*.swo
+*.swn
+.idea/
+.vscode/
+*.iml
+*.log
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Go-specific
+go.sum
+*.mod
+*.cache
+test.out
+coverage.out
+
+# Config files
+config/local.json
+.env

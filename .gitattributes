@@ -1,0 +1,24 @@
+# Set default behavior to automatically detect line endings.
+* text=auto
+
+# Explicitly declare text files you want to always be normalized and converted to LF on checkout.
+*.go text
+*.json text
+*.yaml text
+*.yml text
+*.md text
+*.sh text
+
+# Declare binary files
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.tar.gz binary
+
+# Merge strategies
+*.go merge=recursive
+*.json merge=recursive
+*.yaml merge=recursive
+*.yml merge=recursive
