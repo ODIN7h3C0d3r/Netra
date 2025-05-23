@@ -1,12 +1,12 @@
 package test
 
 import (
+	"io"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
-	"os"
-	"io"
-	"path/filepath"
 )
 
 func binaryPath() string {

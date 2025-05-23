@@ -8,14 +8,24 @@ Netra is a powerful, extensible, and user-friendly CLI tool for IP geolocation, 
 
 - [Features](#features)
 - [Demo](#demo)
+- [Why Netra?](#why-netra)
+- [Architecture Overview](#architecture-overview)
+- [Component Diagram](#component-diagram)
+- [Data Flow Diagram](#data-flow-diagram)
+- [Technical Deep-Dives](#technical-deep-dives)
+- [Usage Scenarios](#usage-scenarios)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Usage](#usage)
+- [Command Reference](#command-reference)
 - [Output Formats](#output-formats)
 - [Configuration](#configuration)
 - [Advanced Usage](#advanced-usage)
+- [API Integration](#api-integration)
+- [Security & Privacy](#security--privacy)
 - [Testing](#testing)
 - [Development](#development)
+- [Contributing](#contributing)
 - [Troubleshooting](#troubleshooting)
 - [FAQ](#faq)
 - [License](#license)
@@ -25,7 +35,7 @@ Netra is a powerful, extensible, and user-friendly CLI tool for IP geolocation, 
 
 ## Features
 
-- Query geolocation and network metadata for any IP address
+- Query geolocation and network metadata for any IP address (IPv4 & IPv6)
 - Supports output formats: **text**, **JSON**, **CSV**, **YAML**
 - Batch lookup from file
 - Save results to file
@@ -36,6 +46,8 @@ Netra is a powerful, extensible, and user-friendly CLI tool for IP geolocation, 
 - Modular, extensible Go codebase
 - Colorful CLI output and banners
 - Open source (MIT License)
+- Easy integration with scripts and pipelines
+- Designed for security, research, and automation
 
 ---
 
@@ -49,6 +61,196 @@ City: Mountain View
 Region: California
 ASN: AS15169
 ...etc
+```
+
+---
+
+## Why Netra?
+
+- **Fast & Reliable:** Built in Go for speed and concurrency.
+- **Extensible:** Add new output formats, fields, or data sources easily.
+- **Scriptable:** Designed for automation, CI/CD, and integration.
+- **Privacy-Respecting:** No tracking, no analytics, open source.
+- **Community-Driven:** Contributions and feature requests welcome!
+
+---
+
+## Architecture Overview
+
+Netra is organized into modular Go packages:
+
+- `cmd/netra/` — CLI entrypoint
+- `internal/cli/` — CLI parsing, flags, and interactive mode
+- `internal/core/` — Core business logic, caching, and API orchestration
+- `internal/network/` — HTTP, DNS, and proxy logic
+- `internal/formatter/` — Output formatting (text, JSON, CSV, YAML)
+- `internal/util/` — Utility functions, logging, validation
+- `config/` — Configuration files
+- `test/` — Automated tests
+
+See [docs/README.md](docs/README.md) for a deeper dive into the architecture and codebase.
+
+---
+
+## Component Diagram
+
+```mermaid
+graph TD
+    CLI[CLI Entry (cmd/netra)] -->|parses flags| CLI_PARSER[CLI Parser (internal/cli)]
+    CLI_PARSER -->|calls| CORE[Core Logic (internal/core)]
+    CORE -->|fetches| NETWORK[Network Layer (internal/network)]
+    CORE -->|formats| FORMATTER[Formatter (internal/formatter)]
+    CORE -->|logs/errors| UTIL[Utils/Logger (internal/util)]
+    NETWORK -->|HTTP/DNS| API[External API / DNS]
+    FORMATTER -->|outputs| CLI
+```
+
+---
+
+## Data Flow Diagram
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI as CLI/Parser
+    participant Core as Core Logic
+    participant Net as Network Layer
+    participant API as External API
+    participant Fmt as Formatter
+    participant Out as Output
+
+    User->>CLI: Run ./netra 8.8.8.8 -format json
+    CLI->>Core: Parse flags, pass args
+    Core->>Net: Request IP info
+    Net->>API: HTTP GET to API
+    API-->>Net: JSON response
+    Net-->>Core: IPInfo struct
+    Core->>Fmt: Format IPInfo as JSON
+    Fmt-->>Out: JSON output
+    Out-->>User: Display/save result
+```
+
+---
+
+## Technical Deep-Dives
+
+### Modular Design & Data Flow
+
+Netra is built with a clean separation of concerns, making it easy to extend and maintain. The main flow for a CLI lookup is:
+
+1. **CLI Entry (cmd/netra/main.go):** Parses flags, arguments, and initializes the app.
+2. **CLI Layer (internal/cli):** Handles user input, interactive mode, and command dispatch.
+3. **Core Logic (internal/core):** Orchestrates lookups, caching, and API calls.
+4. **Network Layer (internal/network):** Manages HTTP, DNS, and proxy logic.
+5. **Formatter (internal/formatter):** Formats results for output (text, JSON, CSV, YAML).
+6. **Utils (internal/util):** Logging, validation, and helpers.
+
+### Sequence Diagram: CLI Lookup
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI as CLI Layer
+    participant Core as Core Logic
+    participant Net as Network Layer
+    participant API as IP Geolocation API
+    participant Fmt as Formatter
+    User->>CLI: Run ./netra 8.8.8.8
+    CLI->>Core: Parse args, request lookup
+    Core->>Net: Query API/cache
+    Net->>API: HTTP request (8.8.8.8)
+    API-->>Net: API response (JSON)
+    Net-->>Core: Return data
+    Core->>Fmt: Format output
+    Fmt-->>CLI: Output string
+    CLI-->>User: Display result
+```
+
+### Class Diagram: Main Packages
+
+```mermaid
+classDiagram
+    class Main {
+        +main()
+    }
+    class CLI {
+        +ParseFlags()
+        +InteractiveMode()
+    }
+    class Core {
+        +LookupIP()
+        +Cache
+    }
+    class Network {
+        +HTTPClient
+        +DNSResolver
+    }
+    class Formatter {
+        +FormatText()
+        +FormatJSON()
+        +FormatCSV()
+        +FormatYAML()
+    }
+    class Util {
+        +Logger
+        +Validation
+    }
+    Main --> CLI
+    CLI --> Core
+    Core --> Network
+    Core --> Formatter
+    Core --> Util
+    Network --> Util
+    Formatter --> Util
+```
+
+### Error Handling & Caching
+
+- **Error Handling:** All network and API errors are caught and reported with clear messages. The CLI exits with non-zero codes on failure.
+- **Caching:** Results are cached in-memory for the session to avoid redundant API calls. (See `internal/core/cache.go`)
+- **Extensibility:** Add new output formats by implementing the `Formatter` interface. Add new data sources by extending the network and core layers.
+
+---
+
+## Usage Scenarios
+
+### Security Operations
+
+- **Threat Intelligence:** Quickly enrich IPs from logs or alerts to identify suspicious activity.
+- **Incident Response:** Automate lookups for IPs involved in incidents using batch mode or scripts.
+
+### Automation & Scripting
+
+- **CI/CD Integration:** Use Netra in pipelines to validate IPs or enrich deployment logs.
+- **Bulk Analysis:** Pipe results to `jq`, `awk`, or import CSV into SIEM tools.
+
+### Research & OSINT
+
+- **Network Mapping:** Map out infrastructure by resolving IPs to locations and ASNs.
+- **Academic Research:** Gather geolocation data for large datasets.
+
+### Example: Enriching IPs in a Log File
+
+```sh
+cat access.log | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' | sort -u | ./netra -format json -file -
+```
+
+### Example: Integrating with Python
+
+```python
+import subprocess, json
+ips = ['8.8.8.8', '1.1.1.1']
+result = subprocess.check_output(['./netra', '-format', 'json'] + ips)
+data = json.loads(result)
+print(data)
+```
+
+### Example: Using Netra in a Bash Script
+
+```sh
+for ip in $(cat ips.txt); do
+  ./netra -quiet $ip >> results.txt
+done
 ```
 
 ---
@@ -100,7 +302,21 @@ go build -o netra ./cmd/netra/
 
 ## Usage
 
-### Command-Line Options
+Netra can be used for one-off lookups, batch processing, or as part of automated scripts and pipelines.
+
+- **Direct CLI:**
+  - Lookup one or more IPs: `./netra 8.8.8.8 1.1.1.1`
+  - Batch from file: `./netra -file ips.txt`
+  - Save output: `./netra -output results.txt ...`
+- **Scripting:**
+  - Use JSON/CSV output for integration with other tools.
+  - Example: `./netra -format json 8.8.8.8 | jq .`
+- **Interactive:**
+  - Start REPL: `./netra --interactive`
+
+---
+
+## Command Reference
 
 | Option         | Description                                      |
 | -------------- | ------------------------------------------------ |
@@ -113,57 +329,71 @@ go build -o netra ./cmd/netra/
 | `-help`        | Show help message                               |
 | `-version`     | Show version info                               |
 
-### Examples
-
-- Lookup multiple IPs:
-
-  ```sh
-  ./netra 8.8.8.8 1.1.1.1
-  ```
-
-- Custom output fields:
-
-  ```sh
-  ./netra -fields ip,country,asn 8.8.8.8
-  ```
-
-- Change output format:
-
-  ```sh
-  ./netra -format json 8.8.8.8
-  ./netra -format csv -file ips.txt
-  ```
-
 ---
 
 ## Output Formats
 
-- **Text** (default): Human-readable, multi-line per IP
-- **JSON**: Machine-readable, suitable for scripting
-- **CSV**: For spreadsheets and data analysis
-- **YAML**: For config and integration
+- **Text:** Human-readable, multi-line per IP (default)
+- **JSON:** Machine-readable, suitable for scripting and automation
+- **CSV:** For spreadsheets and data analysis
+- **YAML:** For config and integration
+
+You can customize which fields are included in the output using the `-fields` flag.
 
 ---
 
 ## Configuration
 
-- Edit `config/config.json` to customize:
-  - API base URL
-  - API token (if required)
-  - Retry and timeout settings
-  - Output format and fields
-  - Proxy and DNS servers
-  - UI preferences (color, quiet mode)
+Netra is highly configurable via `config/config.json`:
+
+- **API Settings:**
+  - `base_url`: Change the IP geolocation API endpoint
+  - `token`: Set your API key if required
+  - `retry_limit`, `timeout`: Control request behavior
+- **Output:**
+  - `default`: Set default output format
+  - `fields`: Set default fields to display
+- **Network:**
+  - `proxy`: Set a proxy for requests
+  - `dns_servers`: Use custom DNS servers
+- **UI:**
+  - `color_theme`, `quiet_mode`: Control CLI appearance
 
 ---
 
 ## Advanced Usage
 
-- **Proxy Support:** Set proxy in `config/config.json` or via environment variable.
-- **Custom DNS:** Use custom DNS servers for lookups.
-- **Field Filtering:** Display only the fields you care about.
-- **Quiet Mode:** Suppress banners and info output with `-quiet`.
-- **Integration:** Use JSON/CSV output for automation and pipelines.
+- **Proxy Support:**
+  - Set proxy in `config/config.json` or via `HTTP_PROXY`/`HTTPS_PROXY` env vars.
+- **Custom DNS:**
+  - Use custom DNS servers for lookups (see config).
+- **Field Filtering:**
+  - Display only the fields you care about: `-fields ip,country,asn`
+- **Quiet Mode:**
+  - Suppress banners and info output with `-quiet`.
+- **Integration:**
+  - Use JSON/CSV output for automation and pipelines.
+- **API Integration:**
+  - Swap out the API endpoint for your own provider.
+
+---
+
+## API Integration
+
+Netra uses a configurable API endpoint for IP lookups. You can:
+
+- Use the default (ipapi.co) or set your own in `config/config.json`
+- Add authentication tokens if your provider requires it
+- Extend the codebase to support multiple APIs or fallback logic
+
+---
+
+## Security & Privacy
+
+- Netra does not collect or transmit any user data beyond the required API requests.
+- All lookups are performed locally except for the API call.
+- No analytics, telemetry, or tracking.
+- Open source for full transparency.
 
 ---
 
@@ -175,7 +405,10 @@ go build -o netra ./cmd/netra/
   go test ./test/
   ```
 
-- Example test: `TestNetraHelp`, `TestNetraOutputFile`, etc.
+- Example tests:
+  - `TestNetraHelp`: Checks help output
+  - `TestNetraOutputFile`: Checks file output
+  - Add your own tests in `test/`
 
 ---
 
@@ -189,6 +422,17 @@ go build -o netra ./cmd/netra/
 - Utility functions in `internal/util/`
 - Tests in `test/`
 - Contributions welcome! Fork and submit a PR.
+- See [docs/README.md](docs/README.md) for more technical details.
+
+---
+
+## Contributing
+
+1. Fork the repo and create your branch
+2. Write clear, documented code and tests
+3. Run `go test ./test/` and ensure all tests pass
+4. Submit a pull request with a clear description
+5. All contributions, bug reports, and feature requests are welcome!
 
 ---
 
@@ -218,6 +462,12 @@ A: Extend the code in `internal/formatter/` and add your logic.
 
 **Q: Is Netra open source?**
 A: Yes, MIT License. See [LICENSE](LICENSE).
+
+**Q: Can I use Netra in CI/CD pipelines?**
+A: Absolutely! Netra is designed for automation and scripting.
+
+**Q: How do I report bugs or request features?**
+A: Open an issue or pull request on GitHub.
 
 ---
 
